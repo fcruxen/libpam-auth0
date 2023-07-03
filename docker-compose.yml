@@ -1,0 +1,15 @@
+version: '3'
+services:
+  Desktop-1:    
+    cap_add:
+    - SYS_PTRACE
+    shm_size: 1g
+    image: libpam-auth0
+    volumes:
+      - ./target/debug/libpam_auth0.so:/lib/x86_64-linux-gnu/security/libpam_auth0.so      
+    build:
+      context: .
+    stdin_open: true
+    tty: true
+    ports:
+    - 4000:4000/tcp
