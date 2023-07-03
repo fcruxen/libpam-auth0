@@ -12,7 +12,7 @@ use std::process::Command;
 use serde_json::json;
 use pamsm::{PamServiceModule, Pam, PamFlags, PamError, PamLibExt};
 use slog::{o, Logger, Drain, info, error};
-
+ 
 const AUTH0_TOKEN_URL: &str = "...";
 const AUTH0_CLIENT_ID: &str = "...";
 const AUTH0_CLIENT_SECRET: &str = "...";
@@ -33,6 +33,20 @@ impl PamAuth0 {
         let drain = slog_term::FullFormat::new(decorator).build().fuse();
         let drain = slog_async::Async::new(drain).build().fuse();
         Logger::root(drain, o!("libpam" => "auth0"))
+    }
+
+    fn request(user: &str, password: &str) -> Result<reqwest::blocking::Response, reqwest::Error> {
+        let client = reqwest::blocking::Client::new();
+        client
+            .post(AUTH0_TOKEN_URL)
+            .header("Content-Type", "application/json")
+            .json(&json!({
+                "grant_type": "password",
+                "username": user,
+                "password": password,
+                "client_id": AUTH0_CLIENT_ID,
+                "client_secret": AUTH0_CLIENT_SECRET,
+        })).send()
     }
 
     fn create_local_user(username: &str, logger: Logger) -> PamError {
@@ -92,24 +106,23 @@ impl PamServiceModule for PamAuth0 {
             Ok(None) => return PamError::USER_UNKNOWN,
             Err(e) => return e,
         };
+        
         info!(logger, "libpam-auth0 received username: {name}", name = user.clone().unwrap());
+        
         let password = match pamh.get_authtok(None) {
             Ok(pass) => pass,
             Err(e) => return e
         };
         let token = password.clone().unwrap().to_str().unwrap();
-        info!(logger, "libpam-auth0 received auth token: {token}");
-        let client = reqwest::blocking::Client::new();
-        let response = client
-            .post(AUTH0_TOKEN_URL)
-            .header("Content-Type", "application/json")
-            .json(&json!({
-                "grant_type": "password",
-                "username": user.clone().unwrap(),
-                "password": password.clone().unwrap().to_string_lossy(),
-                "client_id": AUTH0_CLIENT_ID,
-                "client_secret": AUTH0_CLIENT_SECRET,
-        })).send();
+        let masked_token = "*".repeat(token.len());
+        
+        info!(logger, "libpam-auth0 received auth token: {masked_token}");
+        
+        let response = PamAuth0::request(
+            user.clone().unwrap(), 
+            &password.clone().unwrap().to_string_lossy()
+        );
+        
         match response {
             Ok(res) if res.status().is_success() => {
                 PamAuth0::create_local_user(user.unwrap(), logger)                
