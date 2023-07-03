@@ -1,2 +1,0 @@
-auth sufficient libpam_auth0.so
-account sufficient libpam_auth0.so
