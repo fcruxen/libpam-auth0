@@ -13,3 +13,4 @@ services:
     tty: true
     ports:
     - 4000:4000/tcp
+    - 2200:22/tcp

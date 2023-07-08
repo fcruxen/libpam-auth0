@@ -13,9 +13,8 @@ use serde_json::json;
 use pamsm::{PamServiceModule, Pam, PamFlags, PamError, PamLibExt};
 use slog::{o, Logger, Drain, info, error};
  
-const AUTH0_TOKEN_URL: &str = "...";
-const AUTH0_CLIENT_ID: &str = "...";
-const AUTH0_CLIENT_SECRET: &str = "...";
+const AUTH0_TOKEN_URL: &str = "";
+const AUTH0_CLIENT_ID: &str = "";
 
 struct PamAuth0;
 
@@ -44,8 +43,7 @@ impl PamAuth0 {
                 "grant_type": "password",
                 "username": user,
                 "password": password,
-                "client_id": AUTH0_CLIENT_ID,
-                "client_secret": AUTH0_CLIENT_SECRET,
+                "client_id": AUTH0_CLIENT_ID
         })).send()
     }
 
